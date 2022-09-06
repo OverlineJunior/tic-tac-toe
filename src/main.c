@@ -84,26 +84,38 @@ struct SomePosition find_first_vertically(char board[BOARD_SIZE][BOARD_SIZE], ch
 // Board
 
 void draw(char board[BOARD_SIZE][BOARD_SIZE]) {
-	printf("%c|%c|%c\n"
-		   "%c|%c|%c\n"
-		   "%c|%c|%c\n",
-		   board[0][0], board[0][1], board[0][2],
-		   board[1][0], board[1][1], board[1][2],
-		   board[2][0], board[2][1], board[2][2]);
+	for (int i = 0; i < BOARD_SIZE; i++) {
+		for (int j = 0; j < BOARD_SIZE; j++) {
+			printf("%c", board[i][j]);
+
+			if (j < BOARD_SIZE - 1)
+				printf("|");
+		}
+
+		printf("\n");
+	}
 }
 
 struct Result set(char board[BOARD_SIZE][BOARD_SIZE], int row, int col, char c) {
 	struct Result res;
 
-	if (board[row][col] == EMPTY) {
-		board[row][col] = c;
+	if (row >= BOARD_SIZE || col >= BOARD_SIZE) {
+		res.ok = 0;
+		strcpy(res.err_msg, "Espaco fora dos limites");
 
-		res.ok = 1;
-		strcpy(res.err_msg, "");
-	} else {
+		return res;
+	}
+
+	if (board[row][col] != EMPTY) {
 		res.ok = 0;
 		strcpy(res.err_msg, "Espaco ocupado");
+
+		return res;
 	}
+
+	board[row][col] = c;
+	res.ok = 1;
+	strcpy(res.err_msg, "");
 
 	return res;
 }
