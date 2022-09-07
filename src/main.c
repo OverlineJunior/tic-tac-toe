@@ -144,17 +144,6 @@ Result set(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char c) {
 
 // Bot
 
-void play_first_pos(char board[BOARD_SIZE][BOARD_SIZE]) {
-	for (int i = 0; i < BOARD_SIZE; i++)
-		for (int j = 0; j < BOARD_SIZE; j++) {
-			Position pos = {.row = i, .col = j};
-			Result res = set(board, pos, P2);
-
-			if (res.ok)
-				return;
-		}
-}
-
 Result finish_for_template(char board[BOARD_SIZE][BOARD_SIZE], FindResult target, FindResult empty) {
 	if (target.count == BOARD_SIZE - 1 && empty.count == 1) {
 		set(board, empty.first_position, P2);
@@ -214,6 +203,24 @@ Result finish_for(char board[BOARD_SIZE][BOARD_SIZE], char for_c) {
 	return err;
 }
 
+Result corner(char board[BOARD_SIZE][BOARD_SIZE]) {
+	for (int i = 0; i < 4; i++) {
+		int row = i <= 1 ? 0 : BOARD_SIZE - 1;
+		int col = i % 2 == 0 ? 0 : BOARD_SIZE - 1;
+		
+		if (board[row][col] == EMPTY) {
+			Position pos = {.row = row, .col = col};
+			Result res = set(board, pos, P2);
+
+			if (res.ok)
+				return res;
+		}
+	}
+
+	Result err = {.ok = false, .err_msg = "Could not set to any corner"};
+	return err;
+}
+
 void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 	Result res;
 
@@ -222,12 +229,37 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 	if (res.ok)
 		return;
 
-	// 2. Block.
+	// 2. Block win.
 	res = finish_for(board, P1);
 	if (res.ok)
 		return;
 
-	play_first_pos(board);
+	// 3. Center.
+	// The center is always (1, 1), no matter the board size. Different board sizes require
+	// different strategies, so if this is the case, let the strategy be dumb.
+	Position center = {.row = 1, .col = 1};
+	res = set(board, center, P2);
+	if (res.ok)
+		return;
+
+	corner(board);
+
+	/*
+	1. Win
+	2. Block win
+	3. Center
+	4. Prevent triangle <<<<<<<<<<<<<<<<<<<<<< #TODO
+	X Y N
+	. O .
+	. . X
+	O is the bot.
+	Placing O on N will result in X successfuly making a triangle.
+	Perhaps check if the corners next to N both have X; if yes, the corner N is a trap.
+		Place O on any empty position that is not a corner, resulting in a draw.
+
+	5. Corner
+	6. Random (might never be needed, tests required)
+	*/
 }
 
 // Game loop
@@ -235,7 +267,7 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 int main() {
 	char board[BOARD_SIZE][BOARD_SIZE];
 	fill(board, EMPTY);
-	
+
 	while (true) {
 		// User play
 
