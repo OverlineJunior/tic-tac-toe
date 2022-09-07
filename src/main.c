@@ -155,59 +155,59 @@ void play_first_pos(char board[BOARD_SIZE][BOARD_SIZE]) {
 		}
 }
 
+Result finish_for_template(char board[BOARD_SIZE][BOARD_SIZE], FindResult target, FindResult empty) {
+	if (target.count == BOARD_SIZE - 1 && empty.count == 1) {
+		set(board, empty.first_position, P2);
+
+		Result res = {.ok = true};
+		return res;
+	}
+
+	Result res = {.ok = false, .err_msg = "Finishing position not found"};
+	return res;
+}
+
 Result finish_for(char board[BOARD_SIZE][BOARD_SIZE], char for_c) {
 	for (int i = 0; i < BOARD_SIZE; i++) {
 		// Horizontally.
 		{
-			FindResult res = find_in_row(board, i, for_c);
+			FindResult target = find_in_row(board, i, for_c);
 			FindResult empty = find_in_row(board, i, EMPTY);
 
-			if (res.count == BOARD_SIZE - 1 && empty.count == 1) {
-				set(board, empty.first_position, P2);
-
-				Result res = {.ok = true};
+			Result res = finish_for_template(board, target, empty);
+			if (res.ok)
 				return res;
-			}
 		}
 		
 		// Vertically.
 		{
-			FindResult res = find_in_col(board, i, for_c);
+			FindResult target = find_in_col(board, i, for_c);
 			FindResult empty = find_in_col(board, i, EMPTY);
 
-			if (res.count == BOARD_SIZE - 1 && empty.count == 1) {
-				set(board, empty.first_position, P2);
-
-				Result res = {.ok = true};
+			Result res = finish_for_template(board, target, empty);
+			if (res.ok)
 				return res;
-			}
 		}
 	}
 
 	// Diagonally (top left to bottom right).
 	{
-		FindResult res = find_top_left_diagonal(board, for_c);
+		FindResult target = find_top_left_diagonal(board, for_c);
 		FindResult empty = find_top_left_diagonal(board, EMPTY);
 
-		if (res.count == BOARD_SIZE - 1 && empty.count == 1) {
-			set(board, empty.first_position, P2);
-
-			Result res = {.ok = true};
+		Result res = finish_for_template(board, target, empty);
+		if (res.ok)
 			return res;
-		}
 	}
 
 	// Diagonally (top right to bottom left).
 	{
-		FindResult res = find_top_right_diagonal(board, for_c);
+		FindResult target = find_top_right_diagonal(board, for_c);
 		FindResult empty = find_top_right_diagonal(board, EMPTY);
 
-		if (res.count == BOARD_SIZE - 1 && empty.count == 1) {
-			set(board, empty.first_position, P2);
-
-			Result res = {.ok = true};
+		Result res = finish_for_template(board, target, empty);
+		if (res.ok)
 			return res;
-		}
 	}
 
 	Result err = {.ok = false, .err_msg = "No winning position found"};
