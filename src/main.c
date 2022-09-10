@@ -1,9 +1,8 @@
 /*
-	TODO: Make corner return a *possible* position (struct for that).
-	TODO: Function that returns any position other than corner.
-	TODO: If position, first check if it can result in a triangle for the user;
-		  if yes, block it by placing on any position other than corner;
-		  else, use the position normally.
+NOTE: Bot strategy is hopefully done!
+TODO: Victory detection.
+TODO: Messages (victory, choose a position, etc).
+TODO: (Optional) Use 0..BOARD_SIZE*2 position input instead of row and col.
 */
 
 #include <stdio.h>
@@ -15,22 +14,22 @@
 #define P1 'X'
 #define P2 'O'
 
-typedef struct Result {
+typedef struct{
 	int ok;
 	char err_msg[50];
 } Result;
 
-typedef struct Position {
+typedef struct {
 	int row;
 	int col;
 } Position;
 
-typedef struct FindResult {
+typedef struct {
 	int count;
 	Position first_position;
 } FindResult;
 
-typedef struct MaybePosition {
+typedef struct {
 	int some;
 	Position value;
 } MaybePosition;
@@ -46,8 +45,10 @@ FindResult find_in_row(char board[BOARD_SIZE][BOARD_SIZE], int row, char c) {
 	int count = 0;
 
 	for (int i = 0; i < BOARD_SIZE; i++)
-		if (board[row][i] == c) {
-			if (count == 0) {
+		if (board[row][i] == c)
+		{
+			if (count == 0)
+			{
 				first_pos.row = row;
 				first_pos.col = i;
 			}
@@ -64,8 +65,10 @@ FindResult find_in_col(char board[BOARD_SIZE][BOARD_SIZE], int col, char c) {
 	int count = 0;
 
 	for (int i = 0; i < BOARD_SIZE; i++)
-		if (board[i][col] == c) {
-			if (count == 0) {
+		if (board[i][col] == c)
+		{
+			if (count == 0)
+			{
 				first_pos.row = i;
 				first_pos.col = col;
 			}
@@ -82,8 +85,10 @@ FindResult find_top_left_diagonal(char board[BOARD_SIZE][BOARD_SIZE], char c) {
 	int count = 0;
 
 	for (int i = 0; i < BOARD_SIZE; i++)
-		if (board[i][i] == c) {
-			if (count == 0) {
+		if (board[i][i] == c)
+		{
+			if (count == 0)
+			{
 				first_pos.row = i;
 				first_pos.col = i;
 			}
@@ -99,11 +104,14 @@ FindResult find_top_right_diagonal(char board[BOARD_SIZE][BOARD_SIZE], char c) {
 	Position first_pos;
 	int count = 0;
 
-	for (int i = 0; i < BOARD_SIZE; i++) {
+	for (int i = 0; i < BOARD_SIZE; i++)
+	{
 		int j = (BOARD_SIZE - 1) - i;
 
-		if (board[i][j] == c) {
-			if (count == 0) {
+		if (board[i][j] == c)
+		{
+			if (count == 0)
+			{
 				first_pos.row = i;
 				first_pos.col = j;
 			}
@@ -115,8 +123,6 @@ FindResult find_top_right_diagonal(char board[BOARD_SIZE][BOARD_SIZE], char c) {
 	FindResult res = {.count = count, .first_position = first_pos};
 	return res;
 }
-
-// Board
 
 void draw(char board[BOARD_SIZE][BOARD_SIZE]) {
 	for (int i = 0; i < BOARD_SIZE; i++) {
@@ -156,7 +162,63 @@ Result set(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char c) {
 	return res;
 }
 
-// Bot
+MaybePosition corner(char board[BOARD_SIZE][BOARD_SIZE])
+{
+	for (int i = 0; i < 4; i++)
+	{
+		int row = i <= 1 ? 0 : BOARD_SIZE - 1;
+		int col = i % 2 == 0 ? 0 : BOARD_SIZE - 1;
+
+		if (board[row][col] == EMPTY)
+		{
+			Position pos = {.row = row, .col = col};
+			Result res = can_set(board, pos);
+
+			if (res.ok)
+			{
+				MaybePosition some_pos = {.some = true, .value = pos};
+				return some_pos;
+			}
+		}
+	}
+
+	MaybePosition no_pos;
+	return no_pos;
+}
+
+int is_corner(char board[BOARD_SIZE][BOARD_SIZE], Position pos)
+{
+	int last = BOARD_SIZE - 1;
+	return (pos.row == 0 || pos.row == last) && (pos.col == 0 || pos.col == last);
+}
+
+MaybePosition any_pos_except_corner(char board[BOARD_SIZE][BOARD_SIZE])
+{
+	for (int i = 0; i < BOARD_SIZE; i++)
+		for (int j = 0; j < BOARD_SIZE; j++)
+		{
+			Position pos = {.row = i, .col = j};
+			Result res = can_set(board, pos);
+
+			if (res.ok && !is_corner(board, pos))
+			{
+				MaybePosition m_pos = {.some = true, .value = pos};
+				return m_pos;
+			}
+		}
+
+	MaybePosition no_pos;
+	return no_pos;
+}
+
+int corner_leads_to_enemy_triangle(char board[BOARD_SIZE][BOARD_SIZE], Position corner_pos, char enemy) {
+	int last = BOARD_SIZE - 1;
+	// Corners next to corner_pos.
+	Position c1 = {.row = corner_pos.row == 0 ? last : 0, .col = corner_pos.col};
+	Position c2 = {.row = corner_pos.row, .col = corner_pos.col == 0 ? last : 0};
+
+	return board[c1.row][c1.col] == enemy && board[c2.row][c2.col] == enemy;
+}
 
 Result finish_for_template(char board[BOARD_SIZE][BOARD_SIZE], FindResult target, FindResult empty) {
 	if (target.count == BOARD_SIZE - 1 && empty.count == 1) {
@@ -217,46 +279,64 @@ Result finish_for(char board[BOARD_SIZE][BOARD_SIZE], char for_c) {
 	return err;
 }
 
-int pos_leads_to_enemy_triangle(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char enemy) {
-	/*
-		Case:
-		X (0, 2)
-		A (0, 0)
-		B (2, 2)
+int has_winner(char board[BOARD_SIZE][BOARD_SIZE]) {
+	for (int i = 0; i < 2; i++) {
+		char c = i == 0 ? P1 : P2;
 
-		A . X
-		. . .
-		. . B
-
-		To find A and B, you need 4 positions, where 2 will always be equal to X (those are discarted);
-		A = X where X.row = 0 OR X where x.row = 2 (pick the pos different from X)
-		B = X where X.col = 0 OR X where x.col = 2 (same)
-		
-		Note: 2 = BOARD_SIZE - 1
-	*/
-}
-
-MaybePosition corner(char board[BOARD_SIZE][BOARD_SIZE]) {
-	for (int i = 0; i < 4; i++) {
-		int row = i <= 1 ? 0 : BOARD_SIZE - 1;
-		int col = i % 2 == 0 ? 0 : BOARD_SIZE - 1;
-		
-		if (board[row][col] == EMPTY) {
-			Position pos = {.row = row, .col = col};
-			Result res = set(board, pos, P2);
-
-			if (res.ok) {
-				MaybePosition some_pos = {.some = true, .value = pos};
-				return some_pos;
+		for (int j = 0; j < BOARD_SIZE; j++) {
+			// Horizontally.
+			{
+				FindResult res = find_in_row(board, j, c);
+				if (res.count == BOARD_SIZE)
+					return true;
 			}
+			
+			// Vertically.
+			{
+				FindResult res = find_in_col(board, j, c);
+				if (res.count == BOARD_SIZE)
+					return true;
+			}
+		}
+
+		// Diagonally (top left to bottom right).
+		{
+			FindResult res = find_top_left_diagonal(board, c);
+			if (res.count == BOARD_SIZE)
+				return true;
+		}
+
+		// Diagonally (top right to bottom left).
+		{
+			FindResult res = find_top_right_diagonal(board, c);
+			if (res.count == BOARD_SIZE)
+				return true;
 		}
 	}
 
-	MaybePosition no_pos = {.some = false};
-	return no_pos;
+	return false;
 }
 
 void play(char board[BOARD_SIZE][BOARD_SIZE]) {
+	/*
+	Strategy:
+
+	1. Win
+	2. Block win
+	3. Center
+	4. Prevent triangle
+		X Y N
+		. O .
+		. . X
+		O is the bot.
+		Placing O on N will result in X successfuly making a triangle.
+		Check if the corners next to N both have X; if yes, the corner N is a trap.
+		Place O on any empty position that is not a corner, forcing a draw.
+
+	5. Corner
+	6. Random (might never be needed, tests required)
+	*/
+
 	Result res;
 
 	// 1. Win.
@@ -271,7 +351,7 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 
 	// 3. Center.
 	// The center is always (1, 1), no matter the board size. Different board sizes require
-	// different strategies, so if this is the case, let the strategy be dumb.
+	// different strategies, so if this is the case, let the strategy be dumb by design choice.
 	Position center = {.row = 1, .col = 1};
 	res = set(board, center, P2);
 	if (res.ok)
@@ -279,43 +359,36 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 
 	MaybePosition corner_pos = corner(board);
 	if (corner_pos.some) {
-		// TEMP:
-		int can_user_make_triangle = false;
-
-		if (can_user_make_triangle) {
-			// Place anywhere that is not a corner.
+		if (corner_leads_to_enemy_triangle(board, corner_pos.value, P1)) {
+			MaybePosition pos = any_pos_except_corner(board);
+			if (pos.some)
+				set(board, pos.value, P2);
 		} else {
 			set(board, corner_pos.value, P2);
 		}
+
+		return;
 	}
 
-	/*
-	1. Win
-	2. Block win
-	3. Center
-	4. Prevent triangle <<<<<<<<<<<<<<<<<<<<<< #TODO
-	X Y N
-	. O .
-	. . X
-	O is the bot.
-	Placing O on N will result in X successfuly making a triangle.
-	Perhaps check if the corners next to N both have X; if yes, the corner N is a trap.
-		Place O on any empty position that is not a corner, resulting in a draw.
-
-	5. Corner
-	6. Random (might never be needed, tests required)
-	*/
+	// Catches every case.
+	MaybePosition any_other = any_pos_except_corner(board);
+	if (any_other.some)
+		set(board, any_other.value, P2);
 }
 
-// Game loop
-
 int main() {
+	printf("\nCOMO JOGAR\n"
+		   "Selecione uma posicao dando duas entradas de int, uma para a fileira e outra para a coluna.\n\n"
+		   "NOTA\n"
+		   "Esse programa foi feito pensando em suporte para diferentes tamanhos de tabuleiro."
+		   " Para mudar o tamanho, modifique o valor da constante BOARD_SIZE definida no topo do codigo"
+		   " (note que a estrategia do bot so e eficaz em um tabuleiro 3x3).\n\n");
+
 	char board[BOARD_SIZE][BOARD_SIZE];
 	fill(board, EMPTY);
 
 	while (true) {
-		// User play
-
+		// User
 		int row, col;
 		scanf("%i%i", &row, &col);
 
@@ -328,9 +401,20 @@ int main() {
 
 		draw(board);
 
-		// Bot play
+		if (has_winner(board)) {
+			printf("Voce ganhou!");
+			break;
+		}
+
+		// Bot
+		printf("Bot:\n");
 
 		play(board);
 		draw(board);
+
+		if (has_winner(board)) {
+			printf("Voce perdeu.");
+			break;
+		}
 	}
 }
