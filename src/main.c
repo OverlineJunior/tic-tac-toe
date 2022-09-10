@@ -1,10 +1,3 @@
-/*
-NOTE: Bot strategy is hopefully done!
-TODO: Victory detection.
-TODO: Messages (victory, choose a position, etc).
-TODO: (Optional) Use 0..BOARD_SIZE*2 position input instead of row and col.
-*/
-
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
