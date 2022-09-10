@@ -310,6 +310,18 @@ int has_winner(char board[BOARD_SIZE][BOARD_SIZE]) {
 	return false;
 }
 
+int has_draw(char board[BOARD_SIZE][BOARD_SIZE]) {
+	int cell_count = BOARD_SIZE * BOARD_SIZE;
+	int occupied_count = 0;
+
+	for (int i = 0; i < BOARD_SIZE; i++)
+		for (int j = 0; j < BOARD_SIZE; j++)
+			if (board[i][j] != EMPTY)
+				occupied_count++;
+
+	return occupied_count == cell_count;
+}
+
 void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 	/*
 	Strategy:
@@ -399,6 +411,11 @@ int main() {
 			break;
 		}
 
+		if (has_draw(board)) {
+			printf("Empate.");
+			break;
+		}
+
 		// Bot
 		printf("Bot:\n");
 
@@ -407,6 +424,11 @@ int main() {
 
 		if (has_winner(board)) {
 			printf("Voce perdeu.");
+			break;
+		}
+
+		if (has_draw(board)) {
+			printf("Empate.");
 			break;
 		}
 	}
