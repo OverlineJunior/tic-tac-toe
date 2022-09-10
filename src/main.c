@@ -1,3 +1,11 @@
+/*
+	TODO: Make corner return a *possible* position (struct for that).
+	TODO: Function that returns any position other than corner.
+	TODO: If position, first check if it can result in a triangle for the user;
+		  if yes, block it by placing on any position other than corner;
+		  else, use the position normally.
+*/
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <string.h>
@@ -21,6 +29,11 @@ typedef struct FindResult {
 	int count;
 	Position first_position;
 } FindResult;
+
+typedef struct MaybePosition {
+	int some;
+	Position value;
+} MaybePosition;
 
 void fill(char board[BOARD_SIZE][BOARD_SIZE], char c) {
 	for (int i = 0; i < BOARD_SIZE; i++)
@@ -118,26 +131,27 @@ void draw(char board[BOARD_SIZE][BOARD_SIZE]) {
 	}
 }
 
-Result set(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char c) {
-	Result res;
-
+Result can_set(char board[BOARD_SIZE][BOARD_SIZE], Position pos) {
 	if (pos.row >= BOARD_SIZE || pos.col >= BOARD_SIZE) {
-		res.ok = 0;
-		strcpy(res.err_msg, "Espaco fora dos limites");
-
-		return res;
+		Result err = {.ok = false, .err_msg = "Espaco fora dos limites"};
+		return err;
 	}
 
 	if (board[pos.row][pos.col] != EMPTY) {
-		res.ok = 0;
-		strcpy(res.err_msg, "Espaco ocupado");
-
-		return res;
+		Result err = {.ok = false, .err_msg = "Espaco ocupado"};
+		return err;
 	}
 
+	Result ok = {.ok = true};
+	return ok;
+}
+
+Result set(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char c) {
+	Result res = can_set(board, pos);
+	if (!res.ok)
+		return res;
+
 	board[pos.row][pos.col] = c;
-	res.ok = 1;
-	strcpy(res.err_msg, "");
 
 	return res;
 }
@@ -203,7 +217,26 @@ Result finish_for(char board[BOARD_SIZE][BOARD_SIZE], char for_c) {
 	return err;
 }
 
-Result corner(char board[BOARD_SIZE][BOARD_SIZE]) {
+int pos_leads_to_enemy_triangle(char board[BOARD_SIZE][BOARD_SIZE], Position pos, char enemy) {
+	/*
+		Case:
+		X (0, 2)
+		A (0, 0)
+		B (2, 2)
+
+		A . X
+		. . .
+		. . B
+
+		To find A and B, you need 4 positions, where 2 will always be equal to X (those are discarted);
+		A = X where X.row = 0 OR X where x.row = 2 (pick the pos different from X)
+		B = X where X.col = 0 OR X where x.col = 2 (same)
+		
+		Note: 2 = BOARD_SIZE - 1
+	*/
+}
+
+MaybePosition corner(char board[BOARD_SIZE][BOARD_SIZE]) {
 	for (int i = 0; i < 4; i++) {
 		int row = i <= 1 ? 0 : BOARD_SIZE - 1;
 		int col = i % 2 == 0 ? 0 : BOARD_SIZE - 1;
@@ -212,13 +245,15 @@ Result corner(char board[BOARD_SIZE][BOARD_SIZE]) {
 			Position pos = {.row = row, .col = col};
 			Result res = set(board, pos, P2);
 
-			if (res.ok)
-				return res;
+			if (res.ok) {
+				MaybePosition some_pos = {.some = true, .value = pos};
+				return some_pos;
+			}
 		}
 	}
 
-	Result err = {.ok = false, .err_msg = "Could not set to any corner"};
-	return err;
+	MaybePosition no_pos = {.some = false};
+	return no_pos;
 }
 
 void play(char board[BOARD_SIZE][BOARD_SIZE]) {
@@ -242,7 +277,17 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 	if (res.ok)
 		return;
 
-	corner(board);
+	MaybePosition corner_pos = corner(board);
+	if (corner_pos.some) {
+		// TEMP:
+		int can_user_make_triangle = false;
+
+		if (can_user_make_triangle) {
+			// Place anywhere that is not a corner.
+		} else {
+			set(board, corner_pos.value, P2);
+		}
+	}
 
 	/*
 	1. Win
