@@ -272,6 +272,21 @@ Result finish_for(char board[BOARD_SIZE][BOARD_SIZE], char for_c) {
 	return err;
 }
 
+MaybePosition any_position(char board[BOARD_SIZE][BOARD_SIZE]) {
+	for (int i = 0; i < BOARD_SIZE; i++) {
+		for (int j = 0; j < BOARD_SIZE; j++) {
+			if (board[i][j] == EMPTY) {
+				Position pos = {.row = i, .col = j};
+				MaybePosition some_pos = {.some = true, .value = pos};
+				return some_pos;
+			}
+		}
+	}
+
+	MaybePosition no_pos;
+	return no_pos;
+}
+
 int has_winner(char board[BOARD_SIZE][BOARD_SIZE]) {
 	for (int i = 0; i < 2; i++) {
 		char c = i == 0 ? P1 : P2;
@@ -375,10 +390,15 @@ void play(char board[BOARD_SIZE][BOARD_SIZE]) {
 		return;
 	}
 
-	// Catches every case.
+	// Catches every case in a 3x3 game.
 	MaybePosition any_other = any_pos_except_corner(board);
 	if (any_other.some)
 		set(board, any_other.value, P2);
+
+	// Catches every case.
+	MaybePosition any = any_position(board);
+	if (any.some)
+		set(board, any.value, P2);
 }
 
 int main() {
